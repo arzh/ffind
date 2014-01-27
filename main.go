@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+//	"time"
 )
 
 type FileNameChecker struct {
@@ -74,26 +75,61 @@ func main() {
 	}
 
 	for i, e := range checker.Finds {
-		//fmt.Println(e);
-		checker.Finds[i] = strings.TrimLeft(e, working_dir)
+		str := strings.TrimLeft(e, working_dir)
+		checker.Finds[i] = str;
+		fmt.Fprintf(os.Stdout, "[%d]\t%s\n", i, str)
 	}
 
-	for i, e := range checker.Finds {
-		fmt.Fprintf(os.Stdout, "[%d]\t%s\n", i, e)
-	}
-
-	cmd := exec.Command("cmd")
-	inpipe, err := cmd.StdinPipe()
+	var fileIndex int
+	_, err = fmt.Scanln(&fileIndex)
 	if err != nil {
-		fmt.Println("Error getting stdin pipe:", err.Error())
+		fmt.Println("Failed to get input:", err.Error())
 		return
 	}
-	cmd.Start()
 
-	inpipe.Write([]byte("main.go\n"))
-	inpipe.Write([]byte("exit\n"))
-	err = cmd.Process.Kill();
+	fmt.Println("Index:",  fileIndex)
+
+	if fileIndex > len(checker.Finds) {
+		fmt.Println("Index out of range")
+		return
+	}
+
+	openstr := checker.Finds[fileIndex]
+	fmt.Println(openstr)
+
+	cmd := exec.Command("cmd", "/C", openstr)
+//	inpipe, err := cmd.StdinPipe()
+//	if err != nil {
+//		fmt.Println("Error getting stdin pipe:", err.Error())
+//		return
+//	}
+	cmd.Dir = working_dir
+	err = cmd.Start()
+//	if err != nil {
+//		fmt.Println("failed on start:", err.Error())
+//		return
+//	}
+
+//	fmt.Println("cmd:", cmd)
+
+
+	//inpipe.Write([]byte(openstr))
+	//inpipe.Write([]byte("exit\n"))
+	
+//	n, err := fmt.Fprintln(inpipe, "main.go")
+//	if err != nil {
+//		fmt.Println("Failed printing to cmd inpipe", err.Error())
+//		return;
+//	}
+//	fmt.Println("Bytes written:", n)
+	
+//	fmt.Println("Process state:", cmd.ProcessState)
+	err = cmd.Process.Release()
 	if err != nil {
 		fmt.Println("Error on Kill", err.Error())
 	}
+//	err = cmd.Wait()
+//	if err != nil {
+//		fmt.Println("Wait failed:", err.Error())
+//	}
 }
