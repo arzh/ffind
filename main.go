@@ -17,6 +17,7 @@ type FileNameChecker struct {
 
 func (c *FileNameChecker) Parse(arg string) {
 	c.Name = arg
+	c.Finds = make([]string, 0)
 }
 
 func (c *FileNameChecker) Add(file string) {
@@ -27,10 +28,6 @@ func Walker(path string, info os.FileInfo, err error) error {
 	if info.IsDir() {
 		return nil
 	}
-
-	//if checker.Matches(info.Name()) {
-	//	checker.Add(path + info.Name());
-	//}
 
 	b, err := filepath.Match(checker.Name, info.Name())
 	if b {
@@ -62,8 +59,6 @@ func main() {
 		fmt.Println(err.Error())
 	}
 
-	//fmt.Println(working_dir);
-
 	fileToFind := os.Args[1]
 
 	checker = new(FileNameChecker)
@@ -87,8 +82,6 @@ func main() {
 		return
 	}
 
-	fmt.Println("Index:",  fileIndex)
-
 	if fileIndex > len(checker.Finds) {
 		fmt.Println("Index out of range")
 		return
@@ -97,39 +90,6 @@ func main() {
 	openstr := checker.Finds[fileIndex]
 	fmt.Println(openstr)
 
-	cmd := exec.Command("cmd", "/C", openstr)
-//	inpipe, err := cmd.StdinPipe()
-//	if err != nil {
-//		fmt.Println("Error getting stdin pipe:", err.Error())
-//		return
-//	}
-	cmd.Dir = working_dir
-	err = cmd.Start()
-//	if err != nil {
-//		fmt.Println("failed on start:", err.Error())
-//		return
-//	}
-
-//	fmt.Println("cmd:", cmd)
-
-
-	//inpipe.Write([]byte(openstr))
-	//inpipe.Write([]byte("exit\n"))
+	exec.Command("cmd", "/C", "start "+openstr).Run()
 	
-//	n, err := fmt.Fprintln(inpipe, "main.go")
-//	if err != nil {
-//		fmt.Println("Failed printing to cmd inpipe", err.Error())
-//		return;
-//	}
-//	fmt.Println("Bytes written:", n)
-	
-//	fmt.Println("Process state:", cmd.ProcessState)
-	err = cmd.Process.Release()
-	if err != nil {
-		fmt.Println("Error on Kill", err.Error())
-	}
-//	err = cmd.Wait()
-//	if err != nil {
-//		fmt.Println("Wait failed:", err.Error())
-//	}
 }
