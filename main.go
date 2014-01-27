@@ -1,71 +1,47 @@
 package main
 
 import (
+	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
-	"fmt"
 )
 
 type FileNameChecker struct {
-	Pre, Post bool
 	Name string
-	
+
 	Finds []string
 }
 
 func (c *FileNameChecker) Parse(arg string) {
-	if strings.HasPrefix(arg, "*") {
-		c.Pre = true;
-	}
-
-	if strings.HasSuffix(arg, "*") {
-		c.Post = true;
-	}
-
-	c.Name = strings.Trim(arg, "*");
+	c.Name = arg
 }
 
 func (c *FileNameChecker) Add(file string) {
-	c.Finds = append(c.Finds, file);
+	c.Finds = append(c.Finds, file)
 }
-
-func (c *FileNameChecker) Matches(name string) bool {
-	if checker.Pre && checker.Post {
-		// If contains add
-		if strings.Contains(name, c.Name) {
-			return true;
-		}
-	} else if checker.Pre {
-		// If Trails add
-		if strings.HasSuffix(name, c.Name) {
-			return true;
-		}
-	} else if checker.Post {
-		// If Begins with add
-		if strings.HasPrefix(name, c.Name) {
-			return true;
-		}
-	} else if name == c.Name {
-		return true;
-	}
-
-	return false;
-}	
 
 func Walker(path string, info os.FileInfo, err error) error {
 	if info.IsDir() {
 		return nil
 	}
 
-	if checker.Matches(info.Name()) {
-		checker.Add(path + info.Name());
+	//if checker.Matches(info.Name()) {
+	//	checker.Add(path + info.Name());
+	//}
+
+	b, err := filepath.Match(checker.Name, info.Name())
+	if b {
+		checker.Add(path)
+	} else if err != nil {
+		return err
 	}
-	
-	return nil;
+
+	return nil
 }
 
-var checker *FileNameChecker;
+var checker *FileNameChecker
 
 func main() {
 
@@ -75,27 +51,49 @@ func main() {
 	// Step4: print findings and wait for input
 	// Step5: open file, I will need to have a list of types I want to always open in vim
 
-	if len(os.Args) < 2 { 
-		fmt.Println("Must input file name to find"); // TODO: make this more helpful
-		return;
+	if len(os.Args) < 2 {
+		fmt.Println("Must input file name to find") // TODO: make this more helpful
+		return
 	}
 
-   	working_dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	working_dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
-		fmt.Println(err.Error());
+		fmt.Println(err.Error())
 	}
 
-	fileToFind := os.Args[1];
+	//fmt.Println(working_dir);
 
-	checker = new(FileNameChecker);
-	checker.Parse(fileToFind);
+	fileToFind := os.Args[1]
 
-	err = filepath.Walk(working_dir, Walker);
+	checker = new(FileNameChecker)
+	checker.Parse(fileToFind)
+
+	err = filepath.Walk(working_dir, Walker)
 	if err != nil {
-		fmt.Println(err.Error());
+		fmt.Println(err.Error())
 	}
 
-	for _, e := range checker.Finds {
-		fmt.Println(e);
+	for i, e := range checker.Finds {
+		//fmt.Println(e);
+		checker.Finds[i] = strings.TrimLeft(e, working_dir)
+	}
+
+	for i, e := range checker.Finds {
+		fmt.Fprintf(os.Stdout, "[%d]\t%s\n", i, e)
+	}
+
+	cmd := exec.Command("cmd")
+	inpipe, err := cmd.StdinPipe()
+	if err != nil {
+		fmt.Println("Error getting stdin pipe:", err.Error())
+		return
+	}
+	cmd.Start()
+
+	inpipe.Write([]byte("main.go\n"))
+	inpipe.Write([]byte("exit\n"))
+	err = cmd.Process.Kill();
+	if err != nil {
+		fmt.Println("Error on Kill", err.Error())
 	}
 }
