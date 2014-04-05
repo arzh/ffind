@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	//"path"
 	"path/filepath"
+	"strconv"
 	"strings"
-//	"time"
+	//	"time"
 )
 
 type FileNameChecker struct {
@@ -70,26 +72,59 @@ func main() {
 	}
 
 	for i, e := range checker.Finds {
-		str := strings.TrimLeft(e, working_dir)
-		checker.Finds[i] = str;
+		str := strings.TrimPrefix(e, working_dir)
+		//checker.Finds[i] = str
 		fmt.Fprintf(os.Stdout, "[%d]\t%s\n", i, str)
 	}
 
-	var fileIndex int
-	_, err = fmt.Scanln(&fileIndex)
-	if err != nil {
+	// Now we wait...
+	var scan1 string
+	var scan2 string
+	cmdName := "open"
+	var index int64
+	n, err := fmt.Scanln(&scan1, &scan2)
+	fmt.Printf("n:%d scan1:%s scan2:%s \n", n, scan1, scan2)
+	if UnexpectedError(err) {
 		fmt.Println("Failed to get input:", err.Error())
 		return
 	}
 
-	if fileIndex > len(checker.Finds) {
-		fmt.Println("Index out of range")
+	if n == 2 {
+		cmdName = scan1
+		index, _ = strconv.ParseInt(scan2, 10, 0)
+	} else if n == 1 {
+		index, _ = strconv.ParseInt(scan1, 10, 0)
+	}
+
+	fileindex := int(index)
+	if fileindex > len(checker.Finds) {
+		fmt.Println("File Index out of range")
 		return
 	}
 
-	openstr := checker.Finds[fileIndex]
-	fmt.Println(openstr)
+	openstr := checker.Finds[fileindex]
+	if cmdName == "cd" {
+		// If cd is given we want to go to
+		// the directory of the file
+		fmt.Println(openstr)
+		openstr, _ = filepath.Split(openstr)
+		fmt.Println(openstr)
+	}
 
-	exec.Command("cmd", "/C", "start "+openstr).Run()
-	
+	fmt.Println(cmdName, openstr)
+
+	cmdProc := exec.Command(cmdName, openstr)
+	cmdProc.Stdin = os.Stdin
+	cmdProc.Stdout = os.Stdout
+	cmdProc.Stderr = os.Stderr
+	cmdProc.Run()
+
+}
+
+func UnexpectedError(err error) bool {
+	if err == nil || err.Error() == "unexpected newline" {
+		return false
+	}
+
+	return true
 }
